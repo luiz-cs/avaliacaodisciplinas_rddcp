@@ -1,0 +1,350 @@
+---
+title: "Formulário de Avaliação de Disciplinas"
+subtitle: "Código para tratamento dos dados"
+output: html_notebook
+---
+
+```{r}
+library(dplyr)
+library(ggplot2)
+library(here)
+library(tidyr)
+library(forcats)
+
+```
+
+```{r}
+ad <- read.csv(file = here("AD-1Semestre2024.csv"), sep = ";")
+# pallete: #34C2BB (blue), #F37C19 (orange)
+```
+
+```{r}
+ad2 <-  ad %>%
+  mutate(across(where(is.numeric), as.character)) %>%   
+  pivot_longer(-Disciplina..FLS.,  names_to = "Questão", values_to = "Valor") %>%
+  group_by(Questão, Disciplina..FLS., Valor) %>% 
+  summarise(Frequência = n())%>%
+  separate(Questão, into = c("Questão", "Pergunta"), sep = "\\.{2}") %>% 
+  mutate(Pergunta = gsub("\\.", " ", Pergunta))
+  
+
+
+```
+
+```{r}
+# Get unique values of Questão column
+unique_questoes <- unique(ad2$Questão)
+
+# Create an empty list to store the graphs
+graph_list <- list()
+
+# Iterate over unique values of Questão
+for (questao in unique_questoes) {
+  # Filtrar os dados para o valor atual da Questão
+  ad3 <- ad2 %>% filter(Questão == questao)
+  
+  pergunta <- unique(ad3$Pergunta)
+  
+ # Criar o gráfico
+  g <- ad3 %>% 
+    group_by(Valor) %>% 
+    summarise(Frequência = mean(Frequência)) %>%
+    mutate(Valor = fct_reorder(Valor, Frequência)) %>%  # Reorder Valor by Frequência
+    ggplot(aes(y = Valor, x = Frequência)) +
+    geom_col(fill = "#F37C19") +
+    labs(title = paste(pergunta, "?"), y = NULL, x = "Frequência") +  # Título modificado e remoção do título do eixo y
+    theme_linedraw() +
+    theme(legend.position = "none",
+          plot.background = element_rect(fill = "#34C2BB"),
+          title = element_text(size=7))
+  
+  # Salvar o objeto do gráfico com um nome baseado no valor da questao
+  assign(paste0("g", questao), g, envir = .GlobalEnv)
+  
+  # Armazenar o objeto do gráfico na lista
+  graph_list[[length(graph_list) + 1]] <- g
+}
+
+
+```
+
+```{r}
+for (i in seq_along(graph_list)) {
+  # Extract the variable name from the graph object
+  graph_name <- paste0("g", unique_questoes[i])
+  
+  # Save the plot as a PNG file in the "Gráficos" folder 
+  ggsave(filename = paste0("Gráficos/", graph_name, ".png"), 
+         plot = graph_list[[i]],
+         width = 20,  
+         height = 10, 
+         units = "cm", 
+         dpi = 300)
+}
+```
+
+## **Consertando o eixo**
+
+```{r}
+g101$data$Valor <- fct_relevel(g101$data$Valor, 
+                                levels(g101$data$Valor)[c(1,3,4,2)])
+
+
+ggsave(filename = paste0("Gráficos/", "g101", ".png"), 
+         plot = g101,
+         width = 20,  
+         height = 10, 
+         units = "cm", 
+         dpi = 300)
+```
+
+```{r}
+g202$data$Valor <- fct_relevel(g202$data$Valor, 
+                                levels(g202$data$Valor)[c(1, 3, 5, 4, 2)])
+
+
+ggsave(filename = paste0("Gráficos/", "g202", ".png"), 
+         plot = g202,
+         width = 20,  
+         height = 10, 
+         units = "cm", 
+         dpi = 300)
+```
+
+```{r}
+g210$data$Valor <- fct_relevel(g210$data$Valor, 
+                                levels(g210$data$Valor)[c(2,1,3,4)])
+
+ggsave(filename = paste0("Gráficos/", "g210", ".png"), 
+         plot = g210,
+         width = 20,  
+         height = 10, 
+         units = "cm", 
+         dpi = 300)
+```
+
+```{r}
+g211$data$Valor <- fct_relevel(g211$data$Valor, 
+                                levels(g211$data$Valor)[c(3,2,1,4)])
+g211
+
+ggsave(filename = paste0("Gráficos/", "g211", ".png"), 
+         plot = g211,
+         width = 20,  
+         height = 10, 
+         units = "cm", 
+         dpi = 300)
+```
+
+```{r}
+g212$data$Valor <- fct_relevel(g212$data$Valor, 
+                                levels(g212$data$Valor)[c(2, 1, 4, 3)])
+
+
+g212 <- g212+
+  labs(title = "O material das aulas expositivas, como anotações em lousa e slides, foi...")
+
+ggsave(filename = paste0("Gráficos/", "g212", ".png"), 
+         plot = g212,
+         width = 20,  
+         height = 10, 
+         units = "cm", 
+         dpi = 300)
+```
+
+```{r}
+g213$data$Valor <- fct_relevel(g213$data$Valor, 
+                                levels(g213$data$Valor)[c(2, 3, 1)])
+
+
+ggsave(filename = paste0("Gráficos/", "g213", ".png"), 
+         plot = g213,
+         width = 20,  
+         height = 10, 
+         units = "cm", 
+         dpi = 300)
+```
+
+```{r}
+g215$data$Valor <- fct_relevel(g215$data$Valor, 
+                                levels(g215$data$Valor)[c(5, 4, 1, 2, 3)])
+
+g215+
+  theme(title = element_text(size = 7))
+
+ggsave(filename = paste0("Gráficos/", "g215", ".png"), 
+         plot = g215,
+         width = 20,  
+         height = 10, 
+         units = "cm", 
+         dpi = 300)
+```
+
+## Consertar títulos
+
+```{r}
+
+g206$data$Valor <- fct_relevel(g206$data$Valor, 
+                                levels(g206$data$Valor)[c(1, 4, 3, 2)])
+
+g206 <- g206+
+  labs(title = "Considerando seu preparo prévio, qual foi o nível de dificuldade da disciplina?")
+
+ggsave(filename = paste0("Gráficos/", "g206", ".png"), 
+         plot = g206,
+         width = 20,  
+         height = 10, 
+         units = "cm", 
+         dpi = 300)
+```
+
+```{r}
+
+g207$data$Valor <- fct_relevel(g207$data$Valor, 
+                                levels(g207$data$Valor)[c(1, 4, 3, 2)])
+
+g207 <- g207 +
+  labs(title = "Comparado com a ementa, o nível de dificuldade da disciplina foi...")
+
+ggsave(filename = paste0("Gráficos/", "g207", ".png"), 
+         plot = g207,
+         width = 20,  
+         height = 10, 
+         units = "cm", 
+         dpi = 300)
+```
+
+```{r}
+g303 <- g303 +
+ theme(title = element_text(size = 7))
+
+ggsave(filename = paste0("Gráficos/", "g303", ".png"), 
+         plot = g303,
+         width = 20,  
+         height = 10, 
+         units = "cm", 
+         dpi = 300)
+```
+
+## Trocar por média numérica
+
+```{r}
+
+numerico <- c(103, 104, 105, 106, 301, 302, 303, 304, 305, 306, 307, 308, 309)
+
+# Create an empty list to store the graphs
+graph_list2 <- list()
+
+# Iterate over unique values of Questão
+for (questao in numerico) {
+  # Filtrar os dados para o valor atual da Questão
+  ad3 <- ad2 %>% filter(Questão == questao)
+    
+  pergunta <- unique(ad3$Pergunta)
+  
+  ad3 <- ad3 %>% 
+    group_by(Disciplina..FLS.) %>% 
+    summarise(Média = mean(as.double(Valor)))
+  
+  media_questao <- mean(ad3$Média)
+  
+ # Criar o gráfico
+  g <- ad3 %>%  
+    ggplot(aes(x = Média)) +
+    geom_dotplot(fill = "#F37C19") +
+    geom_vline(xintercept = media_questao, linewidth = 1.5, linetype = "dashed")+
+    annotate("text", x= media_questao+0.1, y=0.3, label= "Média",angle = 90 )+
+    labs(title = paste(pergunta, "?"), x = "Distribuição das Médias", y = "Frequência") +  
+  scale_x_continuous(limits = c(0, 6), breaks = seq(1:5))+
+    scale_y_continuous(limits = c(0, 0.75))+
+    theme_linedraw() +
+    theme(legend.position = "none",
+          plot.background = element_rect(fill = "#34C2BB"),
+          title = element_text(size=7))
+  
+  
+  
+  # Salvar o objeto do gráfico com um nome baseado no valor da questao
+  assign(paste0("g", questao), g, envir = .GlobalEnv)
+  
+  # Armazenar o objeto do gráfico na lista
+  graph_list2[[length(graph_list2) + 1]] <- g
+}
+
+```
+
+```{r}
+for (i in seq_along(graph_list2)) {
+  # Extract the variable name from the graph object
+  graph_name <- paste0("g", numerico[i])
+  
+  # Save the plot as a PNG file in the "Gráficos" folder 
+  ggsave(filename = paste0("Gráficos/", graph_name, "_2.png"), 
+         plot = graph_list2[[i]],
+         width = 20,  
+         height = 10,
+         units = "cm", 
+         dpi = 300) 
+}
+```
+
+```{r}
+ad3 <- ad2 %>% filter(Questão == '102b') %>%  
+  mutate(Valor = ifelse(Valor == "Sociologia ", "Sociologia", Valor))
+  
+pergunta <- unique(ad3$Pergunta)
+  
+ # Criar o gráfico
+  g <- ad3 %>% 
+    group_by(Valor) %>% 
+    summarise(Frequência = mean(Frequência)) %>%
+    mutate(Valor = fct_reorder(Valor, Frequência)) %>%  # Reorder Valor by Frequência
+    ggplot(aes(y = Valor, x = Frequência)) +
+    geom_col(fill = "#F37C19") +
+    labs(title = paste(pergunta, "?"), y = NULL, x = "Frequência") +  # Título modificado e remoção do título do eixo y
+    theme_linedraw() +
+    theme(legend.position = "none",
+          plot.background = element_rect(fill = "#34C2BB"),
+          title = element_text(size=7))
+  
+ ggsave(filename = paste0("Gráficos/g102b.png"), 
+         plot = g,
+         width = 20,  
+         height = 10,
+         units = "cm", 
+         dpi = 300) 
+```
+
+```{r}
+ad107 <- ad %>% 
+  select(Disciplina..FLS., `107..Como.você.avalia.sua.interação.com...Colegas.da.disciplina.`, `107..Como.você.avalia.sua.interação.com...Professora.`) %>%
+  rename("Colegas" = `107..Como.você.avalia.sua.interação.com...Colegas.da.disciplina.`,
+        "Professor(a)" = `107..Como.você.avalia.sua.interação.com...Professora.`) %>% 
+  pivot_longer(-c(Disciplina..FLS.), names_to = "Pessoa", values_to = "Valor") %>%
+  group_by(Disciplina..FLS., Pessoa, Valor) %>% 
+  summarise(Frequência = n()) %>% 
+  group_by(Pessoa, Valor) %>% 
+  summarise(Frequência = mean(Frequência))
+
+g107 <- ad107 %>% 
+    ggplot(aes(y = Valor, x = Frequência, fill= Pessoa)) +
+    geom_col(position = "dodge2") +
+    labs(title = "Como você avalia sua interação com:", y = NULL, x = "Frequência")+
+    scale_fill_manual(values=c("Professor(a)"="#F37C19", "Colegas"="#34C2BB"))+
+    theme_linedraw() +
+    theme(plot.background = element_rect(fill = "#34C2BB"),
+          title = element_text(size=7))
+g107$data$Valor <- fct_relevel(g107$data$Valor, 
+                                levels(g107$data$Valor)[c(4,2,1,3)])
+
+ ggsave(filename = paste0("Gráficos/g107.png"), 
+         plot = g107,
+         width = 20,  
+         height = 10,
+         units = "cm", 
+         dpi = 300) 
+```
+
+```{r}
+unique(ad$Disciplina..FLS.)
+```

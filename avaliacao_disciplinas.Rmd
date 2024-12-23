@@ -4,14 +4,50 @@ subtitle: "Código para tratamento dos dados"
 output: html_notebook
 ---
 
-```{r}
+```{r, echo=FALSE}
 library(dplyr)
 library(ggplot2)
 library(here)
 library(tidyr)
 library(forcats)
+library(stringr)
 
 ```
+
+# 1. Fazendo upload dos bancos de dados
+
+```{r}
+Semestre1_2024 <- read.csv2(here("Dados Formularios/Avaliação_de_Disciplinas_PPGCPUSP_-_1º_Semestre_2024_-_all_versions_-_Portugues_br_pt-br_-_2024-12-23-19-59-45.csv"))
+
+Semestre2_2024 <- read.csv2(here("Dados Formularios/Avaliação_de_Disciplinas_PPGCPUSP_-_2º_Semestre_2024_-_all_versions_-_Portugues_br_pt-br_-_2024-12-23-19-58-36.csv"))
+```
+
+# 2. Organizando as colunas
+
+```{r}
+Semestre1_2024 <- Semestre1_2024 %>% 
+  select(!c(3, 6:18, starts_with("X_"))) %>% 
+  mutate(across(starts_with("FLS"), as.character)) %>% 
+  pivot_longer(cols = c(starts_with("FLS")), names_to = "Pergunta", values_to = "Resposta", values_drop_na = T)%>% 
+  filter(Resposta != c(""), 
+         Resposta != 0) %>% 
+  mutate(Disciplina = str_sub(Pergunta, start = 5, end = 8),
+         Cod_Pergunta = str_sub(Pergunta, start = 10, end = 11), 
+         Pergunta = gsub("...", " ", Pergunta, fixed = T))
+
+
+Semestre2_2024 <- Semestre2_2024 %>% 
+  select(!c(3, 6:18, starts_with("X_"))) %>% 
+  mutate(across(starts_with("FLS"), as.character)) %>% 
+  pivot_longer(cols = c(starts_with("FLS")), names_to = "Pergunta", values_to = "Resposta", values_drop_na = T)%>% 
+  filter(Resposta != c(""), 
+         Resposta != 0) %>% 
+  mutate(Disciplina = str_sub(Pergunta, start = 5, end = 8),
+         Cod_Pergunta = str_sub(Pergunta, start = 10, end = 11), 
+         Pergunta = gsub("...", " ", Pergunta, fixed = T))
+```
+
+## Código Anterior
 
 ```{r}
 ad <- read.csv(file = here("AD-1Semestre2024.csv"), sep = ";")

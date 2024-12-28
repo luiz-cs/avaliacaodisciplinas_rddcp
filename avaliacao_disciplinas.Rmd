@@ -11,22 +11,21 @@ library(here)
 library(tidyr)
 library(forcats)
 library(stringr)
-# pallete: #34C2BB (blue), #F37C19 (orange)
 ```
 
 # 1. Fazendo upload dos bancos de dados
 
 ```{r}
-Semestre1_2024 <- read.csv2(here("Dados Formularios/Avaliação_de_Disciplinas_PPGCPUSP_-_1º_Semestre_2024_-_all_versions_-_Portugues_br_pt-br_-_2024-12-23-19-59-45.csv"))
+Semestre1_2024 <- read.csv2(here("Dados Formularios/Avaliação_de_Disciplinas_PPGCPUSP_-_1º_Semestre_2024_-_all_versions_-_Portugues_br_pt-br_-_2024-12-28-20-50-44.csv"))
 
-Semestre2_2024 <- read.csv2(here("Dados Formularios/Avaliação_de_Disciplinas_PPGCPUSP_-_2º_Semestre_2024_-_all_versions_-_Portugues_br_pt-br_-_2024-12-23-19-58-36.csv"))
+Semestre2_2024 <- read.csv2(here("Dados Formularios/Avaliação_de_Disciplinas_PPGCPUSP_-_2º_Semestre_2024_-_all_versions_-_Portugues_br_pt-br_-_2024-12-28-19-37-06.csv"))
 ```
 
 # 2. Organizando as colunas
 
 ```{r}
 Semestre1_2024 <- Semestre1_2024 %>% 
-  select(!c(1, 3, 6:18, starts_with("X_"))) %>% 
+  select(!c(1, 3, starts_with("X_"))) %>% 
   mutate(across(starts_with("FLS"), as.character)) %>% 
   pivot_longer(cols = c(starts_with("FLS")), names_to = "Pergunta", values_to = "Resposta", values_drop_na = T)%>% 
   filter(Resposta != c(""), 
@@ -37,10 +36,13 @@ Semestre1_2024 <- Semestre1_2024 %>%
   mutate(Pergunta = str_sub(Pergunta, start = 12, end = -1), 
          Pergunta = gsub(".", " ", Pergunta, fixed = T)) %>% 
   rename("Idade" = X1.1.Qual.é.a.sua.idade.,
-         "Mestrado ou Doutorado" = X1.2.Você.é.discente.do.Mestrado.ou.Doutorado.)%>% 
+         "Mestrado ou Doutorado" = X1.2.Você.é.discente.do.Mestrado.ou.Doutorado.) %>% 
    select(end, Disciplina, Idade, `Mestrado ou Doutorado`, Cod_Pergunta, Pergunta, Resposta) %>% 
   mutate(Semestre = "2024_1", 
-         Pergunta = str_trim(Pergunta))
+         Pergunta = str_trim(str_replace(Pergunta, "pela professora", "pelo professor"))) %>% 
+  mutate(Pergunta = str_replace(Pergunta, "a professora", "o professor"))%>% 
+  mutate(Pergunta = str_replace(Pergunta, "A professora", "O professor"))
+
 
 
 Semestre2_2024 <- Semestre2_2024 %>% 
@@ -58,7 +60,9 @@ Semestre2_2024 <- Semestre2_2024 %>%
          "Mestrado ou Doutorado" = X1.2.Você.é.discente.do.Mestrado.ou.Doutorado.)%>% 
    select(end, Disciplina, Idade, `Mestrado ou Doutorado`, Cod_Pergunta, Pergunta, Resposta) %>% 
   mutate(Semestre = "2024_2", 
-         Pergunta = str_trim(Pergunta))
+        Pergunta = str_trim(str_replace(Pergunta, "pela professora", "pelo professor")))%>% 
+  mutate(Pergunta = str_replace(Pergunta, "a professora", "o professor"))%>% 
+  mutate(Pergunta = str_replace(Pergunta, "A professora", "O professor"))
 
 ```
 
@@ -71,31 +75,7 @@ saveRDS(Semestre2_2024, file = here("Dados Tratados/2024Semestre2.RDS"))
 rm(Semestre1_2024, Semestre2_2024)
 ```
 
-## Ano Anterior
-
-```{r}
-Semestre2_2023 <- read.csv(file = here("Dados Formularios/Síntese Disciplinas DCP 2º Semestre 2023- Total.csv"), sep = ",")
-
-```
-
-```{r}
-Semestre2_2023 <- Semestre2_2023 %>%
-  mutate(across(where(is.numeric), as.character)) %>%   
-  pivot_longer(-c(Disciplina..FLS., Carimbo.de.data.hora, X01..Qual.é.sua.faixa.etária., X02a..Qual.é.o.nível.do.seu.curso.de.pós.graduação.atual.),  names_to = "Cod_Pergunta", values_to = "Resposta") %>% 
-  separate(Cod_Pergunta, into = c("Cod_Pergunta", "Pergunta"), sep = "\\.{2}") %>% 
-  filter(!is.na(Pergunta)) %>% 
-  filter(str_detect(Cod_Pergunta, "^X")) %>% 
-  mutate(Pergunta = gsub(".", " ", Pergunta, fixed = T)) %>% 
-  rename("Disciplina" = "Disciplina..FLS.", 
-         "end" = Carimbo.de.data.hora, 
-         "Idade"= X01..Qual.é.sua.faixa.etária., 
-        "Mestrado ou Doutorado" = X02a..Qual.é.o.nível.do.seu.curso.de.pós.graduação.atual.) %>% 
-   select(end, Disciplina, Idade, `Mestrado ou Doutorado`, Cod_Pergunta, Pergunta, Resposta) %>% 
-  mutate(Semestre = "2023_2", 
-         Pergunta = str_trim(Pergunta))
-```
-
-# Fazendo os gráficos
+# 3. Fazendo os gráficos
 
 ## Resgatando as bases de dados
 
@@ -103,7 +83,7 @@ Semestre2_2023 <- Semestre2_2023 %>%
 Sem2024_1 <- readRDS(here("Dados Tratados/2024Semestre1.RDS"))
 Sem2024_2 <- readRDS(here("Dados Tratados/2024Semestre2.RDS"))
 
-Disciplinas2024 <- merge(Sem2024_1, Sem2024_2, all = T) 
+Disciplinas2024B <- merge(Sem2024_1, Sem2024_2, all = T) 
 
 rm(Sem2024_1, Sem2024_2)
 ```
@@ -111,7 +91,7 @@ rm(Sem2024_1, Sem2024_2)
 ## Transformando listangem em frequência
 
 ```{r}
-Disciplinas2024 <- Disciplinas2024 %>% 
+Disciplinas2024 <- Disciplinas2024B %>% 
   group_by(Disciplina, Cod_Pergunta, Pergunta, Resposta, Semestre) %>% 
   summarise(Frequencia = n())
 ```
@@ -177,6 +157,8 @@ g <- ad3 %>%
 rm(ad2, ad3, Perguntas, pergunta, g, codigo, questao, j)
 ```
 
+### Salvando os gráficos:
+
 ```{r}
 for (i in seq_along(graph_list)) {
   # Extract the variable name from the graph object
@@ -194,268 +176,148 @@ for (i in seq_along(graph_list)) {
 rm(i)
 ```
 
+## Idade
+
+```{r}
+semestre.labs <- c("1º Semestre 2024", "2º Semestre 2024")
+names(semestre.labs) <- c("2024_1", "2024_2")
+
+gidade <- Disciplinas2024B %>% 
+  group_by(end, Idade, `Mestrado ou Doutorado`, Semestre) %>% 
+  summarise(Frequencia = n()) %>% 
+  ggplot(aes(x = Idade, fill = `Mestrado ou Doutorado`)) +
+  geom_histogram(alpha = 0.9)+
+    theme_linedraw() +
+    theme(legend.position = "bottom",
+          title = element_text(size=7))+
+  scale_fill_manual(values = c("#F37C19", "#34C2BB"))+
+  ylab("Número de respondendetes")+
+      facet_wrap(~Semestre,
+                 labeller = labeller(Semestre = semestre.labs))
+
+ggsave(filename = paste0("Gráficos/gidade.png"), 
+         plot = gidade,
+         width = 20,  
+         height = 10, 
+         units = "cm", 
+         dpi = 300)
+```
+
 ## **Consertando o eixo**
 
 ```{r}
-g101$data$Resposta <- fct_relevel(g101$data$Resposta, 
-                                levels(g101$data$Resposta)[c(1,3,4,2)])
+g10_1$data$Resposta <- fct_relevel(g10_1$data$Resposta, 
+                                levels(g10_1$data$Resposta)[c(4, 1, 2, 3)])
 
 
-ggsave(filename = paste0("Gráficos/", "g101", ".png"), 
-         plot = g101,
+g10_1
+
+ggsave(filename = "Gráficos/g10_1.png", 
+         plot = g10_1,
          width = 20,  
          height = 10, 
          units = "cm", 
          dpi = 300)
 ```
 
-```{r}
-g202$data$Resposta <- fct_relevel(g202$data$Resposta, 
-                                levels(g202$data$Resposta)[c(1, 3, 5, 4, 2)])
-
-
-ggsave(filename = paste0("Gráficos/", "g202", ".png"), 
-         plot = g202,
-         width = 20,  
-         height = 10, 
-         units = "cm", 
-         dpi = 300)
-```
+## Perguntas g4 e g5
 
 ```{r}
-g210$data$Resposta <- fct_relevel(g210$data$Resposta, 
-                                levels(g210$data$Resposta)[c(2,1,3,4)])
+Disciplinas2024B <- Disciplinas2024 %>% 
+  filter(Cod_Pergunta %in% c("4.", "5.")) %>% 
+  mutate(Pergunta = str_trim(str_replace(Pergunta, "Quais foram as técnicas pedagógicas utilizadas pelo professor", ""))) %>% 
+  mutate(Pergunta = str_trim(str_replace(Pergunta, "Quais foram as formas de avaliação utilizadas pelo professor", ""))) %>% 
+  mutate(Pergunta = str_trim(str_replace(Pergunta, "_", ""))) %>% 
+  filter(Pergunta != "") 
 
-ggsave(filename = paste0("Gráficos/", "g210", ".png"), 
-         plot = g210,
-         width = 20,  
-         height = 10, 
-         units = "cm", 
-         dpi = 300)
-```
-
-```{r}
-g211$data$Resposta <- fct_relevel(g211$data$Resposta, 
-                                levels(g211$data$Resposta)[c(3,2,1,4)])
-g211
-
-ggsave(filename = paste0("Gráficos/", "g211", ".png"), 
-         plot = g211,
-         width = 20,  
-         height = 10, 
-         units = "cm", 
-         dpi = 300)
-```
-
-```{r}
-g212$data$Resposta <- fct_relevel(g212$data$Resposta, 
-                                levels(g212$data$Resposta)[c(2, 1, 4, 3)])
-
-
-g212 <- g212+
-  labs(title = "O material das aulas expositivas, como anotações em lousa e slides, foi...")
-
-ggsave(filename = paste0("Gráficos/", "g212", ".png"), 
-         plot = g212,
-         width = 20,  
-         height = 10, 
-         units = "cm", 
-         dpi = 300)
-```
-
-```{r}
-g213$data$Resposta <- fct_relevel(g213$data$Resposta, 
-                                levels(g213$data$Resposta)[c(2, 3, 1)])
-
-
-ggsave(filename = paste0("Gráficos/", "g213", ".png"), 
-         plot = g213,
-         width = 20,  
-         height = 10, 
-         units = "cm", 
-         dpi = 300)
-```
-
-```{r}
-g215$data$Resposta <- fct_relevel(g215$data$Resposta, 
-                                levels(g215$data$Resposta)[c(5, 4, 1, 2, 3)])
-
-g215+
-  theme(title = element_text(size = 7))
-
-ggsave(filename = paste0("Gráficos/", "g215", ".png"), 
-         plot = g215,
-         width = 20,  
-         height = 10, 
-         units = "cm", 
-         dpi = 300)
-```
-
-## Consertar títulos
-
-```{r}
-
-g206$data$Resposta <- fct_relevel(g206$data$Resposta, 
-                                levels(g206$data$Resposta)[c(1, 4, 3, 2)])
-
-g206 <- g206+
-  labs(title = "Considerando seu preparo prévio, qual foi o nível de dificuldade da disciplina?")
-
-ggsave(filename = paste0("Gráficos/", "g206", ".png"), 
-         plot = g206,
-         width = 20,  
-         height = 10, 
-         units = "cm", 
-         dpi = 300)
-```
-
-```{r}
-
-g207$data$Resposta <- fct_relevel(g207$data$Resposta, 
-                                levels(g207$data$Resposta)[c(1, 4, 3, 2)])
-
-g207 <- g207 +
-  labs(title = "Comparado com a ementa, o nível de dificuldade da disciplina foi...")
-
-ggsave(filename = paste0("Gráficos/", "g207", ".png"), 
-         plot = g207,
-         width = 20,  
-         height = 10, 
-         units = "cm", 
-         dpi = 300)
-```
-
-```{r}
-g303 <- g303 +
- theme(title = element_text(size = 7))
-
-ggsave(filename = paste0("Gráficos/", "g303", ".png"), 
-         plot = g303,
-         width = 20,  
-         height = 10, 
-         units = "cm", 
-         dpi = 300)
-```
-
-## Trocar por média numérica
-
-```{r}
-
-numerico <- c(103, 104, 105, 106, 301, 302, 303, 304, 305, 306, 307, 308, 309)
-
-# Create an empty list to store the graphs
-graph_list2 <- list()
-
-# Iterate over unique values of Questão
-for (questao in numerico) {
-  # Filtrar os dados para o Resposta atual da Questão
-  ad3 <- Disciplinas2024 %>% filter(Questão == questao)
-    
-  pergunta <- unique(ad3$Pergunta)
-  
-  ad3 <- ad3 %>% 
-    group_by(Disciplina..FLS.) %>% 
-    summarise(Média = mean(as.double(Resposta)))
-  
-  media_questao <- mean(ad3$Média)
-  
- # Criar o gráfico
-  g <- ad3 %>%  
-    ggplot(aes(x = Média)) +
-    geom_dotplot(fill = "#F37C19") +
-    geom_vline(xintercept = media_questao, linewidth = 1.5, linetype = "dashed")+
-    annotate("text", x= media_questao+0.1, y=0.3, label= "Média",angle = 90 )+
-    labs(title = paste(pergunta, "?"), x = "Distribuição das Médias", y = "Frequencia") +  
-  scale_x_continuous(limits = c(0, 6), breaks = seq(1:5))+
-    scale_y_continuous(limits = c(0, 0.75))+
+Disciplinas2024B %>% 
+  filter(Cod_Pergunta == "4.") %>% 
+  group_by(Disciplina, Pergunta) %>% 
+  summarise(Frequencia = sum(Frequencia)) %>% 
+  group_by(Disciplina) %>% 
+    ggplot(aes(y = Pergunta, x = Frequencia)) +
+  geom_col(aes(y = Resposta, x = Media), fill = "#34C2BB", alpha = 0.5)+ 
+  geom_dotplot(fill = "#F37C19",  dotsize = 0.1, binwidth = 0.1, stackdir = "center", position = "dodge") +
+    labs(title = paste(pergunta, "?"), y = NULL, x = "Média") + 
     theme_linedraw() +
     theme(legend.position = "none",
-          plot.background = element_rect(fill = "#34C2BB"),
           title = element_text(size=7))
+```
+
+```{r}
+# S
+Perguntas <- unique(Disciplinas2024B$Cod_Pergunta)
+
+# Create an empty list to store the graphs
+graph_list <- list()
+
+cod_list <- list()
+
+j <- 0
+
+# Iterate over unique values of Questão
+for (questao in Perguntas) {
+  # Filtrar os dados para o Resposta atual da Questão
+  ad3 <- Disciplinas2024B %>% filter(Cod_Pergunta == questao)
   
+  pergunta <- unique(ad3$Cod_Pergunta)
+  
+  #Adicionando código
+  j <- j+1
+  codigo <- paste0(unique(ad3$Cod_Pergunta), "_", j)
+  
+#Variáveis temporárias para gráfico
+ad2 <- ad3 %>% 
+    group_by(Disciplina) %>% 
+    summarise(Respondentes = sum(Frequencia)) 
+
+ad3 <- merge(ad3, ad2, all.x = T) %>% 
+  mutate(Percentual = Frequencia/Respondentes)
+
+ad2 <- ad3 %>% 
+    group_by(Pergunta) %>% 
+    summarise(Media = mean(Percentual)/n()) 
+
+ad3 <- merge(ad3, ad2, all.x = T) 
+  
+ # Criar o gráfico
+g <- ad3 %>% 
+    group_by(Disciplina) %>% 
+    ggplot(aes(y = Pergunta, x = Percentual)) +
+  geom_col(aes(y = Pergunta, x = Media), fill = "#34C2BB", alpha = 0.5)+ 
+  geom_dotplot(fill = "#F37C19",  dotsize = 0.1, binwidth = 0.1, stackdir = "center", position = "dodge") +
+    labs(title = paste(pergunta, "?"), y = NULL, x = "Média") + 
+    theme_linedraw() +
+    theme(legend.position = "none",
+          title = element_text(size=7))
   
   
   # Salvar o objeto do gráfico com um nome baseado no Resposta da questao
-  assign(paste0("g", questao), g, envir = .GlobalEnv)
+  assign(paste0("g", codigo), g, envir = .GlobalEnv)
   
   # Armazenar o objeto do gráfico na lista
-  graph_list2[[length(graph_list2) + 1]] <- g
+  graph_list[[length(graph_list) + 1]] <- g
+  
+  #Armazenas código em lista
+  cod_list[[length(cod_list) + 1]] <- codigo
 }
 
+rm(ad2, ad3, Perguntas, pergunta, g, codigo, questao, j)
 ```
 
 ```{r}
-for (i in seq_along(graph_list2)) {
+for (i in seq_along(graph_list)) {
   # Extract the variable name from the graph object
-  graph_name <- paste0("g", numerico[i])
+  graph_name <- paste0("g", cod_list[i])
   
   # Save the plot as a PNG file in the "Gráficos" folder 
-  ggsave(filename = paste0("Gráficos/", graph_name, "_2.png"), 
-         plot = graph_list2[[i]],
+  ggsave(filename = paste0("Gráficos/", graph_name, ".png"), 
+         plot = graph_list[[i]],
          width = 20,  
-         height = 10,
+         height = 10, 
          units = "cm", 
-         dpi = 300) 
+         dpi = 300)
 }
-```
 
-```{r}
-ad3 <- Disciplinas2024 %>% filter(Questão == '102b') %>%  
-  mutate(Resposta = ifelse(Resposta == "Sociologia ", "Sociologia", Resposta))
-  
-pergunta <- unique(ad3$Pergunta)
-  
- # Criar o gráfico
-  g <- ad3 %>% 
-    group_by(Resposta) %>% 
-    summarise(Frequencia = mean(Frequencia)) %>%
-    mutate(Resposta = fct_reorder(Resposta, Frequencia)) %>%  # Reorder Resposta by Frequência
-    ggplot(aes(y = Resposta, x = Frequencia)) +
-    geom_col(fill = "#F37C19") +
-    labs(title = paste(pergunta, "?"), y = NULL, x = "Frequencia") +  # Título modificado e remoção do título do eixo y
-    theme_linedraw() +
-    theme(legend.position = "none",
-          plot.background = element_rect(fill = "#34C2BB"),
-          title = element_text(size=7))
-  
- ggsave(filename = paste0("Gráficos/g102b.png"), 
-         plot = g,
-         width = 20,  
-         height = 10,
-         units = "cm", 
-         dpi = 300) 
-```
-
-```{r}
-ad107 <- ad %>% 
-  select(Disciplina..FLS., `107..Como.você.avalia.sua.interação.com...Colegas.da.disciplina.`, `107..Como.você.avalia.sua.interação.com...Professora.`) %>%
-  rename("Colegas" = `107..Como.você.avalia.sua.interação.com...Colegas.da.disciplina.`,
-        "Professor(a)" = `107..Como.você.avalia.sua.interação.com...Professora.`) %>% 
-  pivot_longer(-c(Disciplina..FLS.), names_to = "Pessoa", values_to = "Resposta") %>%
-  group_by(Disciplina..FLS., Pessoa, Resposta) %>% 
-  summarise(Frequencia = n()) %>% 
-  group_by(Pessoa, Resposta) %>% 
-  summarise(Frequencia = mean(Frequencia))
-
-g107 <- ad107 %>% 
-    ggplot(aes(y = Resposta, x = Frequencia, fill= Pessoa)) +
-    geom_col(position = "dodge2") +
-    labs(title = "Como você avalia sua interação com:", y = NULL, x = "Frequencia")+
-    scale_fill_manual(values=c("Professor(a)"="#F37C19", "Colegas"="#34C2BB"))+
-    theme_linedraw() +
-    theme(plot.background = element_rect(fill = "#34C2BB"),
-          title = element_text(size=7))
-g107$data$Resposta <- fct_relevel(g107$data$Resposta, 
-                                levels(g107$data$Resposta)[c(4,2,1,3)])
-
- ggsave(filename = paste0("Gráficos/g107.png"), 
-         plot = g107,
-         width = 20,  
-         height = 10,
-         units = "cm", 
-         dpi = 300) 
-```
-
-```{r}
-unique(ad$Disciplina..FLS.)
+rm(i)
 ```

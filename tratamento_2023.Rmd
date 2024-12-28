@@ -1,0 +1,28 @@
+---
+title: "Tratamento - Avaliação 2023"
+output: html_notebook
+---
+
+
+
+```{r}
+Semestre2_2023 <- read.csv(file = here("Dados Formularios/Síntese Disciplinas DCP 2º Semestre 2023- Total.csv"), sep = ",")
+
+```
+
+```{r}
+Semestre2_2023 <- Semestre2_2023 %>%
+  mutate(across(where(is.numeric), as.character)) %>%   
+  pivot_longer(-c(Disciplina..FLS., Carimbo.de.data.hora, X01..Qual.é.sua.faixa.etária., X02a..Qual.é.o.nível.do.seu.curso.de.pós.graduação.atual.),  names_to = "Cod_Pergunta", values_to = "Resposta") %>% 
+  separate(Cod_Pergunta, into = c("Cod_Pergunta", "Pergunta"), sep = "\\.{2}") %>% 
+  filter(!is.na(Pergunta)) %>% 
+  filter(str_detect(Cod_Pergunta, "^X")) %>% 
+  mutate(Pergunta = gsub(".", " ", Pergunta, fixed = T)) %>% 
+  rename("Disciplina" = "Disciplina..FLS.", 
+         "end" = Carimbo.de.data.hora, 
+         "Idade"= X01..Qual.é.sua.faixa.etária., 
+        "Mestrado ou Doutorado" = X02a..Qual.é.o.nível.do.seu.curso.de.pós.graduação.atual.) %>% 
+   select(end, Disciplina, Idade, `Mestrado ou Doutorado`, Cod_Pergunta, Pergunta, Resposta) %>% 
+  mutate(Semestre = "2023_2", 
+         Pergunta = str_trim(Pergunta))
+```
